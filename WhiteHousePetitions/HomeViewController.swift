@@ -21,8 +21,10 @@ class HomeViewController: UITableViewController {
         let urlString: String
         
         if navigationController?.tabBarItem.tag == 0 {
+            print("Showing all")
             urlString = "https://www.hackingwithswift.com/samples/petitions-1.json"
         } else {
+            print("showing most recent")
             urlString = "https://www.hackingwithswift.com/samples/petitions-2.json"
         }
         
