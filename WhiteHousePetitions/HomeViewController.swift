@@ -9,15 +9,16 @@ import UIKit
 
 class HomeViewController: UITableViewController {
     var petitions = [Petition]()
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
         
-        loadJson()
+        // fetching json in background thread
+        performSelector(inBackground: #selector(fetchJson), with: nil)
     }
     
-    func loadJson() {
+    @objc func fetchJson() {
         let urlString: String
         
         if navigationController?.tabBarItem.tag == 0 {
@@ -30,28 +31,26 @@ class HomeViewController: UITableViewController {
         
         guard let url = URL(string: urlString) else {
             print("urlString is not valid or nil")
-            showError()
+            // showing UI elements in main thread
+            performSelector(onMainThread: #selector(showError), with: nil, waitUntilDone: false)
             return
         }
         
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let data = try? Data(contentsOf: url) else {
-                print("fetching data from url is failed")
-                self?.showError()
-                return
-            }
-            
-            // now, it's okay to parse json
-            self?.parse(json: data)
+        guard let data = try? Data(contentsOf: url) else {
+            print("fetching data from url is failed")
+            // showing UI elements in main thread
+            performSelector(onMainThread: #selector(showError), with: nil, waitUntilDone: false)
+            return
         }
+        
+        // now, it's okay to parse json
+        parse(json: data)
     }
     
-    func showError() {
-        DispatchQueue.main.async { [weak self] in
-            let ac = UIAlertController(title: "Loading error", message: "There was a problem loading the feed; please check your connection and try again.", preferredStyle: .alert)
-            ac.addAction(UIAlertAction(title: "OK", style: .default))
-            self?.present(ac, animated: true)
-        }
+    @objc func showError() {
+        let ac = UIAlertController(title: "Loading error", message: "There was a problem loading the feed; please check your connection and try again.", preferredStyle: .alert)
+        ac.addAction(UIAlertAction(title: "OK", style: .default))
+        present(ac, animated: true)
     }
     
     func parse(json: Data) {
@@ -59,6 +58,8 @@ class HomeViewController: UITableViewController {
         
         guard let jsonPetitions = try? decoder.decode(Petitions.self, from: json) else {
             print("petitions json parsing failed")
+            // showing UI elements in main thread
+            performSelector(onMainThread: #selector(showError), with: nil, waitUntilDone: false)
             return
         }
         
@@ -66,9 +67,7 @@ class HomeViewController: UITableViewController {
         
         petitions = jsonPetitions.results
         
-        DispatchQueue.main.async { [weak self] in
-            self?.tableView.reloadData()
-        }
+        tableView.performSelector(onMainThread: #selector(UITableView.reloadData), with: nil, waitUntilDone: false)
     }
 }
 
