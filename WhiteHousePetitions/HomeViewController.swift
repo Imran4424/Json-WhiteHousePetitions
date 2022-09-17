@@ -34,20 +34,24 @@ class HomeViewController: UITableViewController {
             return
         }
         
-        guard let data = try? Data(contentsOf: url) else {
-            print("fetching data from url is failed")
-            showError()
-            return
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let data = try? Data(contentsOf: url) else {
+                print("fetching data from url is failed")
+                self?.showError()
+                return
+            }
+            
+            // now, it's okay to parse json
+            self?.parse(json: data)
         }
-        
-        // now, it's okay to parse json
-        parse(json: data)
     }
     
     func showError() {
-        let ac = UIAlertController(title: "Loading error", message: "There was a problem loading the feed; please check your connection and try again.", preferredStyle: .alert)
-        ac.addAction(UIAlertAction(title: "OK", style: .default))
-        present(ac, animated: true)
+        DispatchQueue.main.async { [weak self] in
+            let ac = UIAlertController(title: "Loading error", message: "There was a problem loading the feed; please check your connection and try again.", preferredStyle: .alert)
+            ac.addAction(UIAlertAction(title: "OK", style: .default))
+            self?.present(ac, animated: true)
+        }
     }
     
     func parse(json: Data) {
@@ -61,7 +65,10 @@ class HomeViewController: UITableViewController {
         // Hurray! parsing done
         
         petitions = jsonPetitions.results
-        tableView.reloadData()
+        
+        DispatchQueue.main.async { [weak self] in
+            self?.tableView.reloadData()
+        }
     }
 }
 
